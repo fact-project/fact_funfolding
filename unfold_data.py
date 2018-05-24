@@ -21,7 +21,7 @@ THRESHOLD = 0.85
 THETA2_CUT = 0.025
 
 BINS_OBS = np.logspace(np.log10(400), np.log10(30e3), 31) * u.GeV
-BINS_TRUTH = np.logspace(np.log10(300), np.log10(30e3), 11) * u.GeV
+BINS_TRUTH = np.logspace(np.log10(450), np.log10(30e3), 11) * u.GeV
 
 
 @click.command()
@@ -117,6 +117,10 @@ def main(
         digitized_obs=g_model, digitized_truth=f_model
     )
 
+    filled_bins = set(f_model)
+    has_underflow = 0 in filled_bins
+    has_overflow = len(BINS_TRUTH) in filled_bins
+
     if background:
         X_bg = off[E_PRED].values
         g_bg = np.digitize(X_bg, BINS_OBS.to(u.GeV).value)
@@ -126,8 +130,17 @@ def main(
         )
         model.add_background(vec_g_bg)
 
-    llh = ff.solution.StandardLLH(tau=tau, log_f=True)
-    llh.initialize(vec_g=vec_g_data, model=model)
+    llh = ff.solution.StandardLLH(
+        tau=tau,
+        log_f=True,
+        reg_factor_f=1 / a_eff.value,
+    )
+    llh.initialize(
+        vec_g=vec_g_data,
+        model=model,
+        ignore_n_bins_low=int(has_underflow),
+        ignore_n_bins_high=int(has_overflow),
+    )
 
     sol_mcmc = ff.solution.LLHSolutionMCMC(
         n_burn_steps=10000,
@@ -141,12 +154,11 @@ def main(
     vec_f_est, sigma_vec_f, sample, probs, autocorr_time = sol_mcmc.fit()
 
     # throw away under and overflow bin
-    filled_bins = set(f_model)
-    if len(BINS_TRUTH) in filled_bins:
+    if has_overflow:
         vec_f_est = vec_f_est[:-1]
         sigma_vec_f = sigma_vec_f[:, :-1]
 
-    if 0 in filled_bins:
+    if has_underflow:
         vec_f_est = vec_f_est[1:]
         sigma_vec_f = sigma_vec_f[:, 1:]
 
