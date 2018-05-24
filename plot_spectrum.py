@@ -23,7 +23,7 @@ def magic_crab(E):
 @click.argument('outputfile', type=click.Path(exists=False, dir_okay=False))
 @click.argument('spectra', nargs=-1, type=click.Path(exists=True, dir_okay=False))
 def main(outputfile, spectra):
-    for spectrum in spectra:
+    for zorder, spectrum in enumerate(spectra, start=2):
         data = read_spectrum(spectrum)
 
         e_min = 0.5 * min(data['e_low'].to(u.GeV).value)
@@ -38,11 +38,13 @@ def main(outputfile, spectra):
                 (data['e_high'] - data['e_center']).value,
             ),
             yerr=(
-                (data['flux'] - data['flux_lower_uncertainty']).value,
-                (data['flux_upper_uncertainty'] - data['flux']).value,
+                (data['flux'] - data['flux_lower_uncertainty']).to(POINT_SOURCE_FLUX_UNIT).value,
+                (data['flux_upper_uncertainty'] - data['flux']).to(POINT_SOURCE_FLUX_UNIT).value,
             ),
             label=data['label'],
             ls='',
+            capsize=2,
+            zorder=zorder,
         )
 
     plt.plot(
