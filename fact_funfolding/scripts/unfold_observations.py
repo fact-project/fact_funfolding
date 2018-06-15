@@ -11,8 +11,6 @@ from ..io import save_spectrum
 from ..config import Config
 from ..binning import logspace_binning
 
-SAMPLE_FRACTION = 0.75
-
 E_PRED = 'gamma_energy_prediction'
 E_TRUE = 'corsika_event_header_total_energy'
 
@@ -25,7 +23,6 @@ HEGRA_NORM = 2.79e-7 / (u.m**2 * u.s * u.TeV)
 @click.argument('gamma_file')
 @click.argument('corsika_file')
 @click.argument('output_file')
-@click.option('--label', help='A label to add to the plot', default='funfolding')
 def main(
     config,
     observation_file,
@@ -71,7 +68,7 @@ def main(
 
     # calculate effective area in given binning
     gamma_obstime = calc_gamma_obstime(
-        len(corsika_events) * SAMPLE_FRACTION,
+        len(corsika_events) * config.sample_fraction,
         spectral_index=corsika_runs.energy_spectrum_slope.median(),
         max_impact=270 * u.m,
         flux_normalization=HEGRA_NORM,
@@ -84,7 +81,7 @@ def main(
         impact=270 * u.m,
         bins=bins_true,
         log=False,
-        sample_fraction=SAMPLE_FRACTION,
+        sample_fraction=config.sample_fraction,
     )
 
     # unfold using funfolding

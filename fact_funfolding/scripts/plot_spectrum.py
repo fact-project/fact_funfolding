@@ -3,7 +3,7 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import click
 import numpy as np
-from spectrum_io import read_spectrum
+from ..io import read_spectrum
 import yaml
 import os
 
@@ -45,13 +45,21 @@ def plot_gammapy(e_plot, result):
     return curved_power_law(e_plot, norm, a, b, e_ref)
 
 
-
-
 @click.command()
-@click.option('--fit-result', multiple=True, type=click.Path(exists=True, dir_okay=False))
-@click.argument('outputfile', type=click.Path(exists=False, dir_okay=False))
-@click.argument('spectra', nargs=-1, type=click.Path(exists=True, dir_okay=False))
-def main(fit_result, outputfile, spectra):
+@click.option(
+    '--fit-result',
+    multiple=True,
+    type=click.Path(exists=True, dir_okay=False)
+)
+@click.option('-o', '--outputfile', type=click.Path(exists=False, dir_okay=False))
+@click.option('--e2', is_flag=True, help='Scale by E²')
+@click.argument(
+    'spectra',
+    required=True,
+    nargs=-1,
+    type=click.Path(exists=True, dir_okay=False)
+)
+def main(fit_result, spectra, outputfile, e2):
     for zorder, spectrum in enumerate(spectra, start=2):
         data = read_spectrum(spectrum)
 
@@ -60,22 +68,31 @@ def main(fit_result, outputfile, spectra):
         e_plot = np.logspace(np.log10(e_min), np.log10(e_max), 250) * u.GeV
 
         x = data['e_center'].to(u.GeV).value
+        if e2:
+            scale = x**2
+        else:
+            scale = 1
         plt.errorbar(
             x,
-            x**2 * data['flux'].to(POINT_SOURCE_FLUX_UNIT).value,
+            scale * data['flux'].to(POINT_SOURCE_FLUX_UNIT).value,
             xerr=(
                 (data['e_center'] - data['e_low']).value,
                 (data['e_high'] - data['e_center']).value,
             ),
             yerr=(
-                x**2 * (data['flux'] - data['flux_lower_uncertainty']).to(POINT_SOURCE_FLUX_UNIT).value,
-                x**2 * (data['flux_upper_uncertainty'] - data['flux']).to(POINT_SOURCE_FLUX_UNIT).value,
+                scale * (data['flux'] - data['flux_lower_uncertainty']).to(POINT_SOURCE_FLUX_UNIT).value,
+                scale * (data['flux_upper_uncertainty'] - data['flux']).to(POINT_SOURCE_FLUX_UNIT).value,
             ),
             label=data['label'],
             ls='',
             capsize=2,
             zorder=zorder,
         )
+
+    if e2:
+        scale = e_plot**2
+    else:
+        scale = 1.0
 
     for inputfile in fit_result:
         with open(inputfile) as f:
@@ -85,21 +102,21 @@ def main(fit_result, outputfile, spectra):
 
         plt.plot(
             e_plot.to(u.GeV).value,
-            e_plot**2 * plot_gammapy(e_plot, fit_result).to(POINT_SOURCE_FLUX_UNIT).value,
+            scale * plot_gammapy(e_plot, fit_result).to(POINT_SOURCE_FLUX_UNIT).value,
             label=name.replace('_', ' '),
         )
 
-    # plt.plot(
-    #     e_plot.to(u.GeV).value,
-    #     hegra_crab(e_plot).to(POINT_SOURCE_FLUX_UNIT).value,
-    #     label='HEGRA',
-    #     zorder=0,
-    #     color='lightgray'
-    # )
+    plt.plot(
+        e_plot.to(u.GeV).value,
+        scale * hegra_crab(e_plot).to(POINT_SOURCE_FLUX_UNIT).value,
+        label='HEGRA',
+        zorder=0,
+        color='gray'
+    )
 
     plt.plot(
         e_plot.to(u.GeV).value,
-        (e_plot**2 * magic_crab(e_plot)).to(u.GeV**2 * POINT_SOURCE_FLUX_UNIT).value,
+        scale * magic_crab(e_plot).to(POINT_SOURCE_FLUX_UNIT).value,
         label='MAGIC JHEAP 2015 5-6',
         zorder=0,
         color='darkgray'
@@ -107,19 +124,27 @@ def main(fit_result, outputfile, spectra):
 
     plt.plot(
         e_plot.to(u.GeV).value,
-        (e_plot**2 * magic_crab_performance(e_plot)).to(u.GeV**2 * POINT_SOURCE_FLUX_UNIT).value,
+        scale * magic_crab_performance(e_plot).to(POINT_SOURCE_FLUX_UNIT).value,
         label='MAGIC APP 2012 35.7',
         zorder=0,
         color='lightgray'
     )
 
+    label = 'Φ \,\,/\,\, {{}}(${:latex_inline}$)$'
+    if e2:
+        label = '$E^2 \cdot ' + label.format(u.GeV**2 * POINT_SOURCE_FLUX_UNIT)
+    else:
+        label = '$' + label.format(POINT_SOURCE_FLUX_UNIT)
+
     plt.legend()
     plt.xscale('log')
     plt.yscale('log')
     plt.xlabel('E / GeV')
-    plt.ylabel(f'$E^2 \cdot Φ \,\,/\,\, {{}}${(u.GeV**2 * POINT_SOURCE_FLUX_UNIT):latex_inline}')
-    print('saving plot')
-    plt.savefig(outputfile, dpi=300)
+    plt.ylabel(label)
+    if outputfile:
+        plt.savefig(outputfile, dpi=300)
+    else:
+        plt.show()
 
 
 if __name__ == '__main__':

@@ -7,6 +7,8 @@ class Config:
 
     def __init__(self, config_dict):
 
+        self.sample_fraction = config_dict.get('sample_fraction', 1.0)
+
         self.e_ref = config_dict.get('e_ref', 1 * u.GeV)
 
         self.threshold = config_dict.get('threshold', 0.85)
