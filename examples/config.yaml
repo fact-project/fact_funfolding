@@ -1,2 +1,5 @@
 sample_fraction: 0.7
 tau: 1.0
+
+n_burn_steps: 20000
+n_used_steps: 5000

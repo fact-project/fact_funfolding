@@ -129,8 +129,8 @@ def main(
     )
 
     sol_mcmc = ff.solution.LLHSolutionMCMC(
-        n_burn_steps=10000,
-        n_used_steps=1000,
+        n_burn_steps=config.n_burn_steps,
+        n_used_steps=config.n_used_steps,
     )
     sol_mcmc.initialize(llh=llh, model=model)
     sol_mcmc.set_x0_and_bounds(

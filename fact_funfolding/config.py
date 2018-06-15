@@ -7,6 +7,9 @@ class Config:
 
     def __init__(self, config_dict):
 
+        self.n_burn_steps = config_dict.get('n_burn_steps', 10000)
+        self.n_used_steps = config_dict.get('n_burn_steps', 1000)
+
         self.sample_fraction = config_dict.get('sample_fraction', 1.0)
 
         self.e_ref = config_dict.get('e_ref', 1 * u.GeV)
