@@ -140,8 +140,9 @@ def main(gammapy_fit_result, publication_result, spectra, outputfile, e2):
     plt.legend()
     plt.xscale('log')
     plt.yscale('log')
-    plt.xlabel('E / GeV')
+    plt.xlabel(r'$E \,\,/\,\, \mathrm{GeV}$')
     plt.ylabel(label)
+    plt.tight_layout(pad=0)
     if outputfile:
         plt.savefig(outputfile, dpi=300)
     else:
