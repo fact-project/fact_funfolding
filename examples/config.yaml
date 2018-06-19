@@ -1,0 +1,47 @@
+label: FACT Unfolding
+
+# number of gammas sampled from the whole production set
+# to estimate the effective area
+sample_fraction: 0.7
+
+# regularization parameter, null = no regularization
+tau: null
+
+# take background into account
+background: True
+
+# reference energy
+e_ref:
+    value: 1
+    unit: GeV
+
+# event selection
+threshold: 0.85
+theta2_cut: 0.025
+
+# binning
+e_true_low:
+    value: 450
+    unit: GeV
+
+e_true_high: 
+    value: 30
+    unit: TeV
+
+n_bins_true: 10
+
+e_est_low:
+    value: 400
+    unit: GeV
+
+e_est_high:
+    value: 30
+    unit: TeV
+
+n_bins_est: 30
+
+
+
+# mcmc paramters
+n_burn_steps: 5000
+n_used_steps: 1000

@@ -1,66 +1,63 @@
 import funfolding as ff
 import numpy as np
 from fact.io import read_h5py
-import matplotlib.pyplot as plt
 from irf.collection_area import collection_area
 import astropy.units as u
 from fact.analysis.statistics import calc_gamma_obstime
 from fact.analysis import split_on_off_source_independent
-from fact.analysis.statistics import power_law, curved_power_law, POINT_SOURCE_FLUX_UNIT
-from spectrum_io import save_spectrum
 import click
 
-SAMPLE_FRACTION = 0.75
+from ..io import save_spectrum
+from ..config import Config
+from ..binning import logspace_binning
 
 E_PRED = 'gamma_energy_prediction'
 E_TRUE = 'corsika_event_header_total_energy'
 
 HEGRA_NORM = 2.79e-7 / (u.m**2 * u.s * u.TeV)
 
-THRESHOLD = 0.85
-THETA2_CUT = 0.025
-
-BINS_OBS = np.logspace(np.log10(400), np.log10(30e3), 31) * u.GeV
-BINS_TRUTH = np.logspace(np.log10(450), np.log10(30e3), 11) * u.GeV
-
 
 @click.command()
-@click.argument('data_file')
+@click.argument('config')
+@click.argument('observation_file')
 @click.argument('gamma_file')
 @click.argument('corsika_file')
 @click.argument('output_file')
-@click.option('--tau', type=float, help='Regularization Parameter')
-@click.option(
-    '--background/--no-background', default=True,
-    help='Weither to take background into account'
-)
-@click.option('--label', help='A label to add to the plot', default='funfolding')
 def main(
-    data_file,
+    config,
+    observation_file,
     gamma_file,
     corsika_file,
     output_file,
-    tau,
-    background,
-    label,
 ):
     '''
     unfold fact data
     '''
-    query = f'gamma_prediction > {THRESHOLD} and theta_deg**2 < {THETA2_CUT}'
+    config = Config.from_yaml(config)
+    e_ref = config.e_ref
+    threshold = config.threshold
+    theta2_cut = config.theta2_cut
+
+    # define binning in e_est and e_true
+    bins_obs = logspace_binning(
+        config.e_est_low, config.e_est_high, e_ref, config.n_bins_est
+    )
+    bins_true = logspace_binning(
+        config.e_true_low, config.e_true_high, e_ref, config.n_bins_true
+    )
+
+    # read in files
+    query = 'gamma_prediction > {} and theta_deg**2 < {}'.format(threshold, theta2_cut)
 
     gammas = read_h5py(gamma_file, key='events').query(query)
 
-    query = f'gamma_prediction > {THRESHOLD}'
-    crab = read_h5py(data_file, key='events').query(query)
+    query = 'gamma_prediction > {}'.format(threshold)
+    observations = read_h5py(observation_file, key='events').query(query)
 
-    print(gammas[E_TRUE].describe())
-    print(crab[E_PRED].describe())
+    on, off = split_on_off_source_independent(observations, theta2_cut=theta2_cut)
 
-    on, off = split_on_off_source_independent(crab, theta2_cut=THETA2_CUT)
-
-    crab_runs = read_h5py(data_file, key='runs')
-    obstime = crab_runs.ontime.sum() * u.s
+    observation_runs = read_h5py(observation_file, key='runs')
+    obstime = observation_runs.ontime.sum() * u.s
 
     corsika_events = read_h5py(
         corsika_file,
@@ -68,8 +65,10 @@ def main(
         columns=['total_energy'],
     )
     corsika_runs = read_h5py(corsika_file, key='corsika_runs')
+
+    # calculate effective area in given binning
     gamma_obstime = calc_gamma_obstime(
-        len(corsika_events) * SAMPLE_FRACTION,
+        len(corsika_events) * config.sample_fraction,
         spectral_index=corsika_runs.energy_spectrum_slope.median(),
         max_impact=270 * u.m,
         flux_normalization=HEGRA_NORM,
@@ -80,34 +79,21 @@ def main(
         corsika_events.total_energy.values,
         gammas[E_TRUE].values,
         impact=270 * u.m,
-        bins=BINS_TRUTH,
+        bins=bins_true,
         log=False,
-        sample_fraction=SAMPLE_FRACTION,
+        sample_fraction=config.sample_fraction,
     )
 
-    plt.errorbar(
-        bin_center,
-        a_eff.value,
-        yerr=(
-            a_eff.value - a_eff_low.value,
-            a_eff_high.value - a_eff.value,
-        ),
-        xerr=bin_width / 2,
-        ls=''
-    )
-    plt.yscale('log')
-    plt.xscale('log')
-    plt.show()
-
+    # unfold using funfolding
     X_model = gammas[E_PRED].values
     y_model = gammas[E_TRUE].values
 
     X_data = on[E_PRED].values
 
-    g_model = np.digitize(X_model, BINS_OBS.to(u.GeV).value)
-    f_model = np.digitize(y_model, BINS_TRUTH.to(u.GeV).value)
+    g_model = np.digitize(X_model, bins_obs.to(u.GeV).value)
+    f_model = np.digitize(y_model, bins_true.to(u.GeV).value)
 
-    g_data = np.digitize(X_data, BINS_OBS.to(u.GeV).value)
+    g_data = np.digitize(X_data, bins_obs.to(u.GeV).value)
 
     model = ff.model.LinearModel()
     model.initialize(digitized_obs=g_model, digitized_truth=f_model)
@@ -119,11 +105,11 @@ def main(
 
     filled_bins = set(f_model)
     has_underflow = 0 in filled_bins
-    has_overflow = len(BINS_TRUTH) in filled_bins
+    has_overflow = len(bins_true) in filled_bins
 
-    if background:
+    if config.background:
         X_bg = off[E_PRED].values
-        g_bg = np.digitize(X_bg, BINS_OBS.to(u.GeV).value)
+        g_bg = np.digitize(X_bg, bins_obs.to(u.GeV).value)
         vec_g_bg, _ = model.generate_vectors(
             digitized_obs=g_bg,
             obs_weights=np.full(len(g_bg), 0.2)
@@ -131,7 +117,7 @@ def main(
         model.add_background(vec_g_bg)
 
     llh = ff.solution.StandardLLH(
-        tau=tau,
+        tau=config.tau,
         log_f=True,
         reg_factor_f=1 / a_eff.value,
     )
@@ -143,8 +129,8 @@ def main(
     )
 
     sol_mcmc = ff.solution.LLHSolutionMCMC(
-        n_burn_steps=10000,
-        n_used_steps=1000,
+        n_burn_steps=config.n_burn_steps,
+        n_used_steps=config.n_used_steps,
     )
     sol_mcmc.initialize(llh=llh, model=model)
     sol_mcmc.set_x0_and_bounds(
@@ -164,11 +150,11 @@ def main(
 
     save_spectrum(
         output_file,
-        BINS_TRUTH,
+        bins_true,
         vec_f_est / a_eff / obstime / bin_width / u.GeV,
         sigma_vec_f / a_eff / obstime / bin_width / u.GeV,
-        tau=tau,
-        label=label,
+        tau=config.tau,
+        label=config.label,
 
     )
 
