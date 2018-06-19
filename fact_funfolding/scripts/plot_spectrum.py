@@ -131,7 +131,7 @@ def main(gammapy_fit_result, publication_result, spectra, outputfile, e2):
             color=fit_result.get('color'),
         )
 
-    label = 'Φ \,\,/\,\, {{}}(${:latex_inline}$)$'
+    label = '\Phi \,\,/\,\, {{}}(${:latex_inline}$)$'
     if e2:
         label = '$E^2 \cdot ' + label.format(u.GeV**2 * POINT_SOURCE_FLUX_UNIT)
     else:
