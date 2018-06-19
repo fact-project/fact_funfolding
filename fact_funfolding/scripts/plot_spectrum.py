@@ -99,7 +99,6 @@ def main(gammapy_fit_result, publication_result, spectra, outputfile, e2):
             yerr=scale * yerr,
             label=data['label'],
             ls='',
-            capsize=2,
             zorder=zorder,
         )
 
