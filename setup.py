@@ -4,12 +4,12 @@ from setuptools import setup, find_packages
 setup(
     name='fact_funfolding',
     description='Commandline utility to use funfolding on fact data',
-    version='0.1.2',
+    version='0.1.3',
     author='Maximilian Nöthe',
     author_email='maximilian.noethe@tu-dortmund.de',
     packages=find_packages(),
     install_requires=[
-        'funfolding',
+        'funfolding==0.2.0',
         'pyfact',
         'pyyaml',
         'numpy',

@@ -4,10 +4,9 @@ Unfold FACT spectra using https://github.com/tudo_astroparticlephysics/funfoldin
 
 ## Installation
 
-Install the current master of `emcee`, then install fact_funfolding
+Install the current version of `fact_funfolding` via `pip`:
 ```
-$ pip install https://github.com/dfm/emcee/archive/master.tar.gz
-$ pip install https://github.com/fact-project/fact_funfolding
+$ pip install https://github.com/fact-project/fact_funfolding/archive/v0.1.3.tar.gz
 ```
 
 
