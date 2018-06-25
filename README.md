@@ -1,6 +1,6 @@
 # FACT funfolding
 
-Unfold FACT spectra using https://github.com/tudo_astroparticlephysics/funfolding
+Unfold FACT spectra using https://github.com/tudo-astroparticlephysics/funfolding
 
 ## Installation
 
