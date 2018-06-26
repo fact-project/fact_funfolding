@@ -35,6 +35,7 @@ def main(
     unfold fact data
     '''
     random_state = np.random.RandomState(seed)
+    np.random.set_state(random_state.get_state())
 
     config = Config.from_yaml(config)
     e_ref = config.e_ref

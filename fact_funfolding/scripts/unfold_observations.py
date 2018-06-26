@@ -36,6 +36,7 @@ def main(
     unfold fact data
     '''
     random_state = np.random.RandomState(seed)
+    np.random.set_state(random_state.get_state())
 
     config = Config.from_yaml(config)
     e_ref = config.e_ref
@@ -152,6 +153,7 @@ def main(
     if has_underflow:
         vec_f_est = vec_f_est[1:]
         sigma_vec_f = sigma_vec_f[:, 1:]
+
 
     save_spectrum(
         output_file,
