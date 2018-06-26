@@ -23,16 +23,20 @@ HEGRA_NORM = 2.79e-7 / (u.m**2 * u.s * u.TeV)
 @click.argument('gamma_file')
 @click.argument('corsika_file')
 @click.argument('output_file')
+@click.option('--seed', type=int, default=0)
 def main(
     config,
     observation_file,
     gamma_file,
     corsika_file,
     output_file,
+    seed,
 ):
     '''
     unfold fact data
     '''
+    np.random.seed(seed)
+
     config = Config.from_yaml(config)
     e_ref = config.e_ref
     threshold = config.threshold
