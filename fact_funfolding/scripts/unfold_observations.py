@@ -35,7 +35,7 @@ def main(
     '''
     unfold fact data
     '''
-    np.random.seed(seed)
+    random_state = np.random.RandomState(seed)
 
     config = Config.from_yaml(config)
     e_ref = config.e_ref
@@ -99,7 +99,7 @@ def main(
 
     g_data = np.digitize(X_data, bins_obs.to(u.GeV).value)
 
-    model = ff.model.LinearModel()
+    model = ff.model.LinearModel(random_state=random_state)
     model.initialize(digitized_obs=g_model, digitized_truth=f_model)
 
     vec_g_data, _ = model.generate_vectors(digitized_obs=g_data)
@@ -135,6 +135,7 @@ def main(
     sol_mcmc = ff.solution.LLHSolutionMCMC(
         n_burn_steps=config.n_burn_steps,
         n_used_steps=config.n_used_steps,
+        random_state=random_state,
     )
     sol_mcmc.initialize(llh=llh, model=model)
     sol_mcmc.set_x0_and_bounds(

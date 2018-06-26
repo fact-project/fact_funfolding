@@ -34,7 +34,8 @@ def main(
     '''
     unfold fact data
     '''
-    np.random.seed(seed)
+    random_state = np.random.RandomState(seed)
+
     config = Config.from_yaml(config)
     e_ref = config.e_ref
     threshold = config.threshold
@@ -84,7 +85,8 @@ def main(
     gammas['bin'] = np.digitize(gammas[E_TRUE], bins_true.to(u.GeV).value)
     # split dataframes in train / test set
     gammas['test'] = False
-    gammas.loc[gammas.sample(n_test).index, 'test'] = True
+    idx = gammas.sample(n_test, random_state=random_state).index
+    gammas.loc[idx, 'test'] = True
 
     df_test = gammas[gammas.test]
     df_model = gammas[~gammas.test]
@@ -101,7 +103,7 @@ def main(
     g_test = np.digitize(X_test, bins_obs.to(u.GeV).value)
     f_test = np.digitize(y_test, bins_true.to(u.GeV).value)
 
-    model = ff.model.LinearModel()
+    model = ff.model.LinearModel(random_state=random_state)
     model.initialize(digitized_obs=g_model, digitized_truth=f_model)
 
     vec_g_test, vec_f_test = model.generate_vectors(
@@ -130,6 +132,7 @@ def main(
     sol_mcmc = ff.solution.LLHSolutionMCMC(
         n_burn_steps=config.n_burn_steps,
         n_used_steps=config.n_used_steps,
+        random_state=random_state,
     )
     sol_mcmc.initialize(llh=llh, model=model)
     sol_mcmc.set_x0_and_bounds(
