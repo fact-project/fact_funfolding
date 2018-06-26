@@ -5,7 +5,6 @@ from irf.collection_area import collection_area
 import astropy.units as u
 import click
 from fact.analysis.statistics import calc_gamma_obstime
-import matplotlib.pyplot as plt
 
 from ..io import save_spectrum
 from ..config import Config
@@ -23,16 +22,19 @@ HEGRA_NORM = 2.83e-11 / (u.cm**2 * u.s * u.TeV)
 @click.argument('corsika_file')
 @click.argument('output_file')
 @click.option('--n-test', type=int, default=2500)
+@click.option('--seed', type=int, default=0)
 def main(
     config,
     gamma_file,
     corsika_file,
     output_file,
     n_test,
+    seed,
 ):
     '''
     unfold fact data
     '''
+    np.random.seed(seed)
     config = Config.from_yaml(config)
     e_ref = config.e_ref
     threshold = config.threshold
