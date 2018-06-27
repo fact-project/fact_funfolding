@@ -156,6 +156,8 @@ def main(
         bins_true,
         vec_f_est / a_eff / bin_width / u.GeV / obstime,
         sigma_vec_f / a_eff / bin_width / u.GeV / obstime,
+        counts=vec_f_est,
+        counts_err=sigma_vec_f,
         tau=config.tau,
         label=config.label,
     )

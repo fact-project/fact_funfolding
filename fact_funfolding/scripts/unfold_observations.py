@@ -154,12 +154,13 @@ def main(
         vec_f_est = vec_f_est[1:]
         sigma_vec_f = sigma_vec_f[:, 1:]
 
-
     save_spectrum(
         output_file,
         bins_true,
         vec_f_est / a_eff / obstime / bin_width / u.GeV,
         sigma_vec_f / a_eff / obstime / bin_width / u.GeV,
+        counts=vec_f_est,
+        counts_err=sigma_vec_f,
         tau=config.tau,
         label=config.label,
 

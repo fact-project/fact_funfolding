@@ -3,7 +3,7 @@ from fact.analysis.statistics import POINT_SOURCE_FLUX_UNIT
 import astropy.units as u
 
 
-def save_spectrum(outputfile, bins, flux, flux_err, **metadata):
+def save_spectrum(outputfile, bins, flux, flux_err, counts, counts_err, **metadata):
     bins = bins.to(u.GeV)
     bin_centers = 0.5 * (bins[:-1] + bins[1:])
 
@@ -32,6 +32,9 @@ def save_spectrum(outputfile, bins, flux, flux_err, **metadata):
             'value': flux_err[1].to(POINT_SOURCE_FLUX_UNIT).value.tolist(),
             'unit': str(POINT_SOURCE_FLUX_UNIT),
         },
+        'counts': counts.tolist(),
+        'counts_lower_uncertainty': counts_err[0].tolist(),
+        'counts_upper_uncertainty': counts_err[1].tolist(),
         **metadata
     }
 
