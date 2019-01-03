@@ -11,7 +11,7 @@ from ..io import read_spectrum
 
 def flux_publication_result(e_plot, result):
     func = result['function']
-    assert func in ('power_law', 'log_parabola'), 'Spectral function not understood'
+    assert func in ('power_law', 'log_parabola', 'exponential_cutoff'), 'Spectral function not understood'
 
     norm = u.Quantity(**result['phi_0'])
     e_ref = u.Quantity(**result['e_ref'])
@@ -25,7 +25,13 @@ def flux_publication_result(e_plot, result):
         )
 
     index = result['spectral_index']
-    return power_law(e_plot, norm, index, e_ref)
+    power = power_law(e_plot, norm, index, e_ref)
+
+    if func == 'exponential_cutoff':
+        e_cutoff = u.Quantity(**result['e_cutoff'])
+        power *= np.exp(- e_plot / e_cutoff)
+
+    return power
 
 
 def flux_gammapy_fit_result(e_plot, result):
