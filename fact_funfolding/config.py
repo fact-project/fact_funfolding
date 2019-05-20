@@ -1,6 +1,9 @@
 import astropy.units as u
 from copy import deepcopy
 from ruamel.yaml import YAML
+import logging
+
+log = logging.getLogger(__name__)
 
 yaml = YAML(typ='safe')
 
@@ -11,8 +14,6 @@ class Config:
 
         self.n_burn_steps = config_dict.get('n_burn_steps', 10000)
         self.n_used_steps = config_dict.get('n_burn_steps', 1000)
-
-        self.sample_fraction = config_dict.get('sample_fraction', 1.0)
 
         self.e_ref = config_dict.get('e_ref', 1 * u.GeV)
 
@@ -42,6 +43,7 @@ class Config:
 
     @classmethod
     def from_yaml(cls, path):
+        log.info('Loading config from ' + path)
         with open(path, 'r') as f:
             d = yaml.load(f)
 

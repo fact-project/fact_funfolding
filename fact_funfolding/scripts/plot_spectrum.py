@@ -3,10 +3,11 @@ import astropy.units as u
 import matplotlib.pyplot as plt
 import click
 import numpy as np
-import yaml
-
+from ruamel.yaml import YAML
 
 from ..io import read_spectrum
+
+yaml = YAML(typ='safe')
 
 
 def flux_publication_result(e_plot, result):

@@ -6,10 +6,13 @@ import astropy.units as u
 from fact.analysis.statistics import calc_gamma_obstime
 from fact.analysis import split_on_off_source_independent
 import click
+import h5py
+import logging
 
 from ..io import save_spectrum
 from ..config import Config
 from ..binning import logspace_binning
+from ..logging import setup_logging
 
 E_PRED = 'gamma_energy_prediction'
 E_TRUE = 'corsika_event_header_total_energy'
@@ -35,6 +38,10 @@ def main(
     '''
     unfold fact data
     '''
+    setup_logging()
+    log = logging.getLogger('fact_funfolding')
+    log.setLevel(logging.INFO)
+
     random_state = np.random.RandomState(seed)
     np.random.set_state(random_state.get_state())
 
@@ -54,9 +61,15 @@ def main(
     # read in files
     query = 'gamma_prediction > {} and theta_deg**2 < {}'.format(threshold, theta2_cut)
 
+    log.info('Reading simulated gammas')
     gammas = read_h5py(gamma_file, key='events').query(query)
+    with h5py.File(gamma_file, 'r') as f:
+        sample_fraction = f.attrs.get('sample_fraction', 1.0)
+        log.info('Using sampling fraction of {:.3f}'.format(sample_fraction))
 
     query = 'gamma_prediction > {}'.format(threshold)
+
+    log.info('Reading observations')
     observations = read_h5py(observation_file, key='events').query(query)
 
     on, off = split_on_off_source_independent(observations, theta2_cut=theta2_cut)
@@ -74,7 +87,7 @@ def main(
 
     # calculate effective area in given binning
     gamma_obstime = calc_gamma_obstime(
-        simulated_spectrum['n_showers'] * config.sample_fraction,
+        simulated_spectrum['n_showers'] * sample_fraction,
         spectral_index=simulated_spectrum['energy_spectrum_slope'],
         max_impact=simulated_spectrum['x_scatter'],
         flux_normalization=HEGRA_NORM,
@@ -87,7 +100,7 @@ def main(
         impact=simulated_spectrum['x_scatter'],
         bins=bins_true,
         log=False,
-        sample_fraction=config.sample_fraction,
+        sample_fraction=sample_fraction,
     )
 
     # unfold using funfolding
@@ -118,9 +131,8 @@ def main(
         g_bg = np.digitize(X_bg, bins_obs.to(u.GeV).value)
         vec_g_bg, _ = model.generate_vectors(
             digitized_obs=g_bg,
-            obs_weights=np.full(len(g_bg), 0.2)
         )
-        model.add_background(vec_g_bg)
+        model.add_background(vec_g_bg * 0.2)
 
     llh = ff.solution.StandardLLH(
         tau=config.tau,
