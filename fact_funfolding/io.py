@@ -1,9 +1,10 @@
 import json
-from fact.analysis.statistics import POINT_SOURCE_FLUX_UNIT
 import astropy.units as u
 
+from fact.analysis.statistics import POINT_SOURCE_FLUX_UNIT
 
-def save_spectrum(outputfile, bins, flux, flux_err, counts, counts_err, **metadata):
+
+def save_spectrum(outputfile, bins, flux, flux_err, counts, counts_err, g=None, bg=None, **metadata):
     bins = bins.to(u.GeV)
     bin_centers = 0.5 * (bins[:-1] + bins[1:])
 
@@ -37,6 +38,12 @@ def save_spectrum(outputfile, bins, flux, flux_err, counts, counts_err, **metada
         'counts_upper_uncertainty': counts_err[1].tolist(),
         **metadata
     }
+
+    if g is not None:
+        data['g'] = g.tolist()
+
+    if bg is not None:
+        data['bg'] = bg.tolist()
 
     with open(outputfile, 'w') as f:
         json.dump(data, f, indent=4)

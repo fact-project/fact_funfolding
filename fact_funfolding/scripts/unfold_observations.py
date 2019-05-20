@@ -1,6 +1,6 @@
 import funfolding as ff
 import numpy as np
-from fact.io import read_h5py
+from fact.io import read_h5py, read_simulated_spectrum
 from irf.collection_area import collection_area
 import astropy.units as u
 from fact.analysis.statistics import calc_gamma_obstime
@@ -69,21 +69,22 @@ def main(
         key='corsika_events',
         columns=['total_energy'],
     )
-    corsika_runs = read_h5py(corsika_file, key='corsika_runs')
+
+    simulated_spectrum = read_simulated_spectrum(corsika_file)
 
     # calculate effective area in given binning
     gamma_obstime = calc_gamma_obstime(
-        len(corsika_events) * config.sample_fraction,
-        spectral_index=corsika_runs.energy_spectrum_slope.median(),
-        max_impact=270 * u.m,
+        simulated_spectrum['n_showers'] * config.sample_fraction,
+        spectral_index=simulated_spectrum['energy_spectrum_slope'],
+        max_impact=simulated_spectrum['x_scatter'],
         flux_normalization=HEGRA_NORM,
-        e_min=corsika_runs.energy_min.median() * u.GeV,
-        e_max=corsika_runs.energy_max.median() * u.GeV,
+        e_min=simulated_spectrum['energy_min'],
+        e_max=simulated_spectrum['energy_max'],
     )
     a_eff, bin_center, bin_width, a_eff_low, a_eff_high = collection_area(
         corsika_events.total_energy.values,
         gammas[E_TRUE].values,
-        impact=270 * u.m,
+        impact=simulated_spectrum['x_scatter'],
         bins=bins_true,
         log=False,
         sample_fraction=config.sample_fraction,
@@ -161,6 +162,8 @@ def main(
         sigma_vec_f / a_eff / obstime / bin_width / u.GeV,
         counts=vec_f_est,
         counts_err=sigma_vec_f,
+        g=vec_g_data,
+        bg=vec_g_bg,
         tau=config.tau,
         label=config.label,
 

@@ -1,6 +1,8 @@
-import yaml
 import astropy.units as u
 from copy import deepcopy
+from ruamel.yaml import YAML
+
+yaml = YAML(typ='safe')
 
 
 class Config:
