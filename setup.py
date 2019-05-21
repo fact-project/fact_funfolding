@@ -4,14 +4,14 @@ from setuptools import setup, find_packages
 setup(
     name='fact_funfolding',
     description='Commandline utility to use funfolding on fact data',
-    version='0.1.5',
+    version='0.2.0',
     author='Maximilian Nöthe',
     author_email='maximilian.noethe@tu-dortmund.de',
     packages=find_packages(),
     install_requires=[
         'funfolding==0.2.0',
-        'pyfact',
-        'pyyaml',
+        'pyfact>=0.23.0',
+        'ruamel.yaml>=0.15.0',
         'numpy',
         'astropy',
         'irf',

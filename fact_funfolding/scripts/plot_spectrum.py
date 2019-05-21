@@ -1,12 +1,13 @@
-from fact.analysis.statistics import power_law, curved_power_law, POINT_SOURCE_FLUX_UNIT
+from fact.analysis.statistics import power_law, log_parabola, POINT_SOURCE_FLUX_UNIT
 import astropy.units as u
 import matplotlib.pyplot as plt
 import click
 import numpy as np
-import yaml
-
+from ruamel.yaml import YAML
 
 from ..io import read_spectrum
+
+yaml = YAML(typ='safe')
 
 
 def flux_publication_result(e_plot, result):
@@ -20,7 +21,7 @@ def flux_publication_result(e_plot, result):
         a = result['a']
         b = result['b']
 
-        return curved_power_law(
+        return log_parabola(
             e_plot, flux_normalization=norm, a=a, b=b, e_ref=e_ref
         )
 
@@ -49,7 +50,7 @@ def flux_gammapy_fit_result(e_plot, result):
     e_ref = parameters['reference']
     e_ref = u.Quantity(e_ref['value'], e_ref['unit'])
 
-    return curved_power_law(e_plot, norm, a, b, e_ref)
+    return log_parabola(e_plot, norm, a, b, e_ref)
 
 
 @click.command()
