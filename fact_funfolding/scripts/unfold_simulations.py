@@ -4,11 +4,14 @@ from fact.io import read_h5py, read_simulated_spectrum
 from irf.collection_area import collection_area
 import astropy.units as u
 import click
+import h5py
 from fact.analysis.statistics import calc_gamma_obstime
+import logging
 
 from ..io import save_spectrum
 from ..config import Config
 from ..binning import logspace_binning
+from ..logging import setup_logging
 
 E_PRED = 'gamma_energy_prediction'
 E_TRUE = 'corsika_event_header_total_energy'
@@ -35,6 +38,10 @@ def main(
     '''
     unfold fact data
     '''
+    setup_logging()
+    log = logging.getLogger('fact_funfolding')
+    log.setLevel(logging.INFO)
+
     random_state = np.random.RandomState(seed)
     np.random.set_state(random_state.get_state())
 
@@ -55,6 +62,9 @@ def main(
     query = 'gamma_prediction > {} and theta_deg**2 < {}'.format(threshold, theta2_cut)
 
     gammas = read_h5py(gamma_file, key='events').query(query)
+    with h5py.File(gamma_file, 'r') as f:
+        sample_fraction = f.attrs.get('sample_fraction', 1.0)
+        log.info('Using sampling fraction of {:.3f}'.format(sample_fraction))
 
     query = 'gamma_prediction > {}'.format(threshold)
     corsika_events = read_h5py(
@@ -65,7 +75,7 @@ def main(
     simulated_spectrum = read_simulated_spectrum(corsika_file)
 
     obstime = calc_gamma_obstime(
-        simulated_spectrum['n_showers'] * config.sample_fraction,
+        simulated_spectrum['n_showers'] * sample_fraction,
         spectral_index=simulated_spectrum['energy_spectrum_slope'],
         max_impact=simulated_spectrum['x_scatter'],
         flux_normalization=HEGRA_NORM,
@@ -81,7 +91,7 @@ def main(
         impact=simulated_spectrum['x_scatter'],
         bins=bins_true.to(u.GeV).value,
         log=False,
-        sample_fraction=config.sample_fraction,
+        sample_fraction=sample_fraction,
     )
 
     gammas['bin'] = np.digitize(gammas[E_TRUE], bins_true.to(u.GeV).value)
