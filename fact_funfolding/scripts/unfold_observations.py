@@ -167,6 +167,11 @@ def main(
         vec_f_est = vec_f_est[1:]
         sigma_vec_f = sigma_vec_f[:, 1:]
 
+    additional_features_to_save = dict()
+    additional_features_to_save['a_eff'] = a_eff
+    additional_features_to_save['a_eff_low'] = a_eff_low
+    additional_features_to_save['a_eff_high'] = a_eff_high
+
     save_spectrum(
         output_file,
         bins_true,
@@ -178,6 +183,7 @@ def main(
         bg=vec_g_bg,
         tau=config.tau,
         label=config.label,
+        add_features=additional_features_to_save,
 
     )
 
