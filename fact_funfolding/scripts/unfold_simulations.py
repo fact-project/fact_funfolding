@@ -5,7 +5,7 @@ from irf.collection_area import collection_area
 import astropy.units as u
 import click
 import h5py
-from fact.analysis.statistics import calc_gamma_obstime
+from fact.analysis.statistics import calc_weights_powerlaw
 import logging
 
 from ..io import save_spectrum
@@ -18,6 +18,7 @@ E_TRUE = 'corsika_event_header_total_energy'
 
 HEGRA_NORM = 2.83e-11 / (u.cm**2 * u.s * u.TeV)
 HEGRA_E_REF = 1 * u.TeV
+HEGRA_INDEX = -2.62
 
 
 @click.command()
@@ -25,18 +26,18 @@ HEGRA_E_REF = 1 * u.TeV
 @click.argument('gamma_file')
 @click.argument('corsika_file')
 @click.argument('output_file')
-@click.option('--n-test', type=int, default=2500)
+@click.option('-t', '--obstime', type=u.Quantity, default='50 h')
 @click.option('--seed', type=int, default=0)
 def main(
     config,
     gamma_file,
     corsika_file,
     output_file,
-    n_test,
+    obstime,
     seed,
 ):
     '''
-    unfold fact data
+    unfold fact simulations
     '''
     setup_logging()
     log = logging.getLogger('fact_funfolding')
@@ -74,22 +75,26 @@ def main(
     )
     simulated_spectrum = read_simulated_spectrum(corsika_file)
 
-    obstime = calc_gamma_obstime(
-        simulated_spectrum['n_showers'] * sample_fraction,
-        spectral_index=simulated_spectrum['energy_spectrum_slope'],
-        max_impact=simulated_spectrum['x_scatter'],
-        flux_normalization=HEGRA_NORM,
+    weights = calc_weights_powerlaw(
+        u.Quantity(gammas['corsika_event_header_total_energy'].values, u.GeV, copy=False),
+        obstime=obstime,
+        n_events=simulated_spectrum['n_showers'],
         e_min=simulated_spectrum['energy_min'],
         e_max=simulated_spectrum['energy_max'],
+        simulated_index=simulated_spectrum['energy_spectrum_slope'],
+        scatter_radius=simulated_spectrum['x_scatter'],
+        target_index=HEGRA_INDEX,
+        flux_normalization=HEGRA_NORM,
         e_ref=HEGRA_E_REF,
-    ) * (n_test / len(gammas))
+        sample_fraction=sample_fraction,
+    )
 
     # calculate effective area in given binning
     a_eff, bin_center, bin_width, a_eff_low, a_eff_high = collection_area(
         corsika_events.total_energy.values,
         gammas[E_TRUE].values,
         impact=simulated_spectrum['x_scatter'],
-        bins=bins_true.to(u.GeV).value,
+        bins=bins_true.to_value(u.GeV),
         log=False,
         sample_fraction=sample_fraction,
     )
@@ -97,7 +102,8 @@ def main(
     gammas['bin'] = np.digitize(gammas[E_TRUE], bins_true.to(u.GeV).value)
     # split dataframes in train / test set
     gammas['test'] = False
-    idx = gammas.sample(n_test, random_state=random_state).index
+    n_test = np.random.poisson(weights.sum())
+    idx = np.random.choice(gammas.index, n_test, p=weights / weights.sum())
     gammas.loc[idx, 'test'] = True
 
     df_test = gammas[gammas.test]
@@ -125,10 +131,6 @@ def main(
         digitized_obs=g_model, digitized_truth=f_model
     )
 
-    filled_bins = set(f_model)
-    has_underflow = 0 in filled_bins
-    has_overflow = len(bins_true) in filled_bins
-
     llh = ff.solution.StandardLLH(
         tau=config.tau,
         log_f=True,
@@ -137,8 +139,8 @@ def main(
     llh.initialize(
         vec_g=vec_g_test,
         model=model,
-        ignore_n_bins_low=int(has_underflow),
-        ignore_n_bins_high=int(has_overflow),
+        ignore_n_bins_low=1,
+        ignore_n_bins_high=1,
     )
 
     sol_mcmc = ff.solution.LLHSolutionMCMC(
@@ -152,15 +154,6 @@ def main(
     )
 
     vec_f_est, sigma_vec_f, sample, probs, autocorr_time = sol_mcmc.fit()
-
-    # throw away under and overflow bin
-    if has_overflow:
-        vec_f_est = vec_f_est[:-1]
-        sigma_vec_f = sigma_vec_f[:, :-1]
-
-    if has_underflow:
-        vec_f_est = vec_f_est[1:]
-        sigma_vec_f = sigma_vec_f[:, 1:]
 
     save_spectrum(
         output_file,
