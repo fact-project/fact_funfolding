@@ -144,6 +144,11 @@ def main(
 
     vec_f_est, sigma_vec_f, sample, probs, autocorr_time = sol_mcmc.fit()
 
+    additional_features_to_save = dict()
+    additional_features_to_save['a_eff'] = a_eff
+    additional_features_to_save['a_eff_low'] = a_eff_low
+    additional_features_to_save['a_eff_high'] = a_eff_high
+
     save_spectrum(
         output_file,
         bins_true,
@@ -155,6 +160,7 @@ def main(
         bg=vec_g_bg,
         tau=config.tau,
         label=config.label,
+        add_features=additional_features_to_save,
     )
 
 
