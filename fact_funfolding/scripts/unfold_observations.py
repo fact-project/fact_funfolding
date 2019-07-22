@@ -3,7 +3,6 @@ import numpy as np
 from fact.io import read_h5py, read_simulated_spectrum
 from irf.collection_area import collection_area
 import astropy.units as u
-from fact.analysis.statistics import calc_gamma_obstime
 from fact.analysis import split_on_off_source_independent
 import click
 import h5py
@@ -85,20 +84,11 @@ def main(
 
     simulated_spectrum = read_simulated_spectrum(corsika_file)
 
-    # calculate effective area in given binning
-    gamma_obstime = calc_gamma_obstime(
-        simulated_spectrum['n_showers'] * sample_fraction,
-        spectral_index=simulated_spectrum['energy_spectrum_slope'],
-        max_impact=simulated_spectrum['x_scatter'],
-        flux_normalization=HEGRA_NORM,
-        e_min=simulated_spectrum['energy_min'],
-        e_max=simulated_spectrum['energy_max'],
-    )
     a_eff, bin_center, bin_width, a_eff_low, a_eff_high = collection_area(
         corsika_events.total_energy.values,
         gammas[E_TRUE].values,
         impact=simulated_spectrum['x_scatter'],
-        bins=bins_true,
+        bins=bins_true.to_value(u.GeV),
         log=False,
         sample_fraction=sample_fraction,
     )
@@ -122,10 +112,6 @@ def main(
         digitized_obs=g_model, digitized_truth=f_model
     )
 
-    filled_bins = set(f_model)
-    has_underflow = 0 in filled_bins
-    has_overflow = len(bins_true) in filled_bins
-
     if config.background:
         X_bg = off[E_PRED].values
         g_bg = np.digitize(X_bg, bins_obs.to(u.GeV).value)
@@ -142,8 +128,8 @@ def main(
     llh.initialize(
         vec_g=vec_g_data,
         model=model,
-        ignore_n_bins_low=int(has_underflow),
-        ignore_n_bins_high=int(has_overflow),
+        ignore_n_bins_low=1,
+        ignore_n_bins_high=1,
     )
 
     sol_mcmc = ff.solution.LLHSolutionMCMC(
@@ -153,19 +139,10 @@ def main(
     )
     sol_mcmc.initialize(llh=llh, model=model)
     sol_mcmc.set_x0_and_bounds(
-        x0=np.random.poisson(vec_f_model * obstime / gamma_obstime)
+        x0=np.random.poisson(vec_f_model * vec_g_data.sum() / vec_g_model.sum())
     )
 
     vec_f_est, sigma_vec_f, sample, probs, autocorr_time = sol_mcmc.fit()
-
-    # throw away under and overflow bin
-    if has_overflow:
-        vec_f_est = vec_f_est[:-1]
-        sigma_vec_f = sigma_vec_f[:, :-1]
-
-    if has_underflow:
-        vec_f_est = vec_f_est[1:]
-        sigma_vec_f = sigma_vec_f[:, 1:]
 
     additional_features_to_save = dict()
     additional_features_to_save['a_eff'] = a_eff
@@ -184,7 +161,6 @@ def main(
         tau=config.tau,
         label=config.label,
         add_features=additional_features_to_save,
-
     )
 
 

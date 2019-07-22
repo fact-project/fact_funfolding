@@ -82,26 +82,27 @@ def main(gammapy_fit_result, publication_result, spectra, outputfile, e2):
     for zorder, spectrum in enumerate(spectra, start=3):
         data = read_spectrum(spectrum)
 
-        e_min = 0.5 * min(data['e_low'].to(u.GeV).value)
-        e_max = 2 * max(data['e_high'].to(u.GeV).value)
+        e_min = 0.5 * min(data['e_low'].to_value(u.GeV)[1:-1])
+        e_max = 2 * max(data['e_high'].to_value(u.GeV)[1:-1])
         e_plot = np.logspace(np.log10(e_min), np.log10(e_max), 250) * u.GeV
 
-        x = data['e_center'].to(u.GeV).value
+        x = data['e_center'].to_value(u.GeV)[1:-1]
         if e2:
             scale = x**2
         else:
             scale = 1
 
         yerr = u.Quantity([
-            (data['flux'] - data['flux_lower_uncertainty']),
-            (data['flux_upper_uncertainty'] - data['flux'])
+            (data['flux'][1:-1] - data['flux_lower_uncertainty'][1:-1]),
+            (data['flux_upper_uncertainty'][1:-1] - data['flux'][1:-1])
         ]).to(POINT_SOURCE_FLUX_UNIT).value
+
         plt.errorbar(
             x,
-            scale * data['flux'].to(POINT_SOURCE_FLUX_UNIT).value,
+            scale * data['flux'].to(POINT_SOURCE_FLUX_UNIT).value[1:-1],
             xerr=(
-                (data['e_center'] - data['e_low']).value,
-                (data['e_high'] - data['e_center']).value,
+                (data['e_center'] - data['e_low']).value[1:-1],
+                (data['e_high'] - data['e_center']).value[1:-1],
             ),
             yerr=scale * yerr,
             label=data['label'],
@@ -137,9 +138,9 @@ def main(gammapy_fit_result, publication_result, spectra, outputfile, e2):
             color=fit_result.get('color'),
         )
 
-    label = '\Phi \,\,/\,\, {{}}(${:latex_inline}$)$'
+    label = r'\Phi \,\,/\,\, {{}}(${:latex_inline}$)$'
     if e2:
-        label = '$E^2 \cdot ' + label.format(u.GeV**2 * POINT_SOURCE_FLUX_UNIT)
+        label = r'$E^2 \cdot ' + label.format(u.GeV**2 * POINT_SOURCE_FLUX_UNIT)
     else:
         label = '$' + label.format(POINT_SOURCE_FLUX_UNIT)
 
