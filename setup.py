@@ -9,7 +9,7 @@ setup(
     author_email='maximilian.noethe@tu-dortmund.de',
     packages=find_packages(),
     install_requires=[
-        'funfolding==0.2.0',
+        'funfolding~=0.2.0',
         'pyfact>=0.24.0',
         'ruamel.yaml>=0.15.0',
         'numpy',
