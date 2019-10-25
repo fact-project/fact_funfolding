@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 setup(
     name='fact_funfolding',
     description='Commandline utility to use funfolding on fact data',
-    version='0.3.1',
+    version='0.3.2',
     author='Maximilian Nöthe',
     author_email='maximilian.noethe@tu-dortmund.de',
     packages=find_packages(),
@@ -14,7 +14,7 @@ setup(
         'ruamel.yaml>=0.15.0',
         'numpy',
         'astropy',
-        'irf',
+        'irf @ https://github.com/fact-project/irf/archive/v0.5.1.tar.gz',
     ],
     entry_points={
         'console_scripts': [

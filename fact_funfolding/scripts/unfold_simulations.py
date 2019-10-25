@@ -95,7 +95,6 @@ def main(
         gammas[E_TRUE].values,
         impact=simulated_spectrum['x_scatter'],
         bins=bins_true.to_value(u.GeV),
-        log=False,
         sample_fraction=sample_fraction,
     )
 
