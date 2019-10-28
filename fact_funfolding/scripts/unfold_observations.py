@@ -26,6 +26,7 @@ HEGRA_NORM = 2.79e-7 / (u.m**2 * u.s * u.TeV)
 @click.argument('corsika_file')
 @click.argument('output_file')
 @click.option('--seed', type=int, default=0)
+@click.option('--label', type=str, help='Override label in config')
 def main(
     config,
     observation_file,
@@ -33,6 +34,7 @@ def main(
     corsika_file,
     output_file,
     seed,
+    label,
 ):
     '''
     unfold fact data
@@ -158,7 +160,7 @@ def main(
         g=vec_g_data,
         bg=vec_g_bg,
         tau=config.tau,
-        label=config.label,
+        label=label or config.label,
         add_features=additional_features_to_save,
     )
 
