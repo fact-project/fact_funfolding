@@ -28,6 +28,7 @@ HEGRA_INDEX = -2.62
 @click.argument('output_file')
 @click.option('-t', '--obstime', type=u.Quantity, default='50 h')
 @click.option('--seed', type=int, default=0)
+@click.option('--label', type=str, help='Override label in config')
 def main(
     config,
     gamma_file,
@@ -35,6 +36,7 @@ def main(
     output_file,
     obstime,
     seed,
+    label,
 ):
     '''
     unfold fact simulations
@@ -167,7 +169,7 @@ def main(
         counts=vec_f_est,
         counts_err=sigma_vec_f,
         tau=config.tau,
-        label=config.label,
+        label=label or config.label,
         add_features=additional_features_to_save,
     )
 
