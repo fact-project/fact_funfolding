@@ -26,7 +26,9 @@ HEGRA_NORM = 2.79e-7 / (u.m**2 * u.s * u.TeV)
 @click.argument('corsika_file')
 @click.argument('output_file')
 @click.option('--seed', type=int, default=0)
-@click.option('--label', type=str, help='Override label in config')
+@click.option('--label', type=str, help='Override label from config')
+@click.option('--threshold', type=float, help='Override threshold from config')
+@click.option('--theta2_cut', type=float, help='Override theta2 cut from config')
 def main(
     config,
     observation_file,
@@ -35,6 +37,8 @@ def main(
     output_file,
     seed,
     label,
+    threshold,
+    theta2_cut,
 ):
     '''
     unfold fact data
@@ -48,8 +52,11 @@ def main(
 
     config = Config.from_yaml(config)
     e_ref = config.e_ref
-    threshold = config.threshold
-    theta2_cut = config.theta2_cut
+    threshold = threshold or config.threshold
+    theta2_cut = theta2_cut or config.theta2_cut
+
+    print('Using threshold', threshold)
+    print('Using theta2 cut', theta2_cut)
 
     # define binning in e_est and e_true
     bins_obs = logspace_binning(
