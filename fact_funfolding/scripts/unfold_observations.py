@@ -55,8 +55,8 @@ def main(
     threshold = threshold or config.threshold
     theta2_cut = theta2_cut or config.theta2_cut
 
-    log.info('Using threshold', threshold)
-    log.info('Using theta2 cut', theta2_cut)
+    log.info(f'Using threshold {threshold}')
+    log.info(f'Using theta2 cut {theta2_cut}')
 
     # define binning in e_est and e_true
     bins_obs = logspace_binning(
