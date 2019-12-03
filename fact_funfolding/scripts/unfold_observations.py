@@ -131,7 +131,7 @@ def main(
     llh = ff.solution.StandardLLH(
         tau=config.tau,
         log_f=True,
-        reg_factor_f=1 / a_eff.value,
+        reg_factor_f=1 / a_eff.value[1:-1] if config.tau else None,
     )
     llh.initialize(
         vec_g=vec_g_data,
