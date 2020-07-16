@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 setup(
     name='fact_funfolding',
     description='Commandline utility to use funfolding on fact data',
-    version='0.3.5',
+    version='0.3.6',
     author='Maximilian Nöthe',
     author_email='maximilian.noethe@tu-dortmund.de',
     packages=find_packages(),
