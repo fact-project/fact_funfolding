@@ -4,9 +4,9 @@ Unfold FACT spectra using https://github.com/tudo-astroparticlephysics/funfoldin
 
 ## Installation
 
-Install the current version of `fact_funfolding` via `pip`:
+Install the current version of `fact_funfolding` via `pip` from github releases:
 ```
-$ pip install https://github.com/fact-project/fact_funfolding/archive/v0.1.5.tar.gz
+$ pip install https://github.com/fact-project/fact_funfolding/archive/v0.3.6.tar.gz
 ```
 
 
